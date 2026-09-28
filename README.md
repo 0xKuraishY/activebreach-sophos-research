@@ -42,7 +42,7 @@ expected outputs, troubleshooting).
 
 Proof (single take, desktop clock visible, ending on the empty Events page):
 
-![PoC run](PoC.mp4)
+[![PoC](PoC.png)](PoC.mp4)
 
 ## How ABE works (the parts that matter here)
 
