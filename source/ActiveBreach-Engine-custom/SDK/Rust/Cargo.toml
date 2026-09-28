@@ -1,0 +1,81 @@
+[package]
+name = "activebreach"
+version = "0.2.0"
+edition = "2021"
+authors = ["8damon", "RYFTENIUS"]
+repository = "https://github.com/8damon/ActiveBreach-Engine"
+homepage = "https://github.com/8damon/ActiveBreach-Engine"
+readme = "README.md"
+license-file = "LICENSE"
+description = "Highly modular & configurable Syscall-Execuion framework"
+keywords = ["syscall", "indirect_call", "dse", "av", "redteam", "proxy", "ntdll", "EDR", "ActiveBreach"]
+categories = ["os::windows-apis"]
+
+publish = false
+
+exclude = ["test/*", "target/*", ".vscode", "*.dll", "*.lib"]
+
+[dependencies]
+once_cell = "1"
+rustc-hash = "2"
+
+windows = { version = "0.62", features = [
+  "Win32_Foundation",
+  "Win32_System_Threading",
+  "Win32_System_LibraryLoader",
+  "Win32_System_Memory",
+  "Win32_Storage_FileSystem",
+  "Win32_System_Diagnostics_Debug",
+  "Win32_System_SystemServices",
+  "Win32_System_SystemInformation",
+] }
+
+[dev-dependencies]
+winapi = { version = "0.3.9", features = [
+  "handleapi",
+  "libloaderapi",
+  "minwindef",
+  "processthreadsapi",
+  "synchapi",
+  "winbase",
+  "ntdef",
+  "winnt",
+] }
+
+[lib]
+name = "activebreach"
+path = "src/lib.rs"
+crate-type = ["rlib", "staticlib", "cdylib"]
+
+[[test]]
+name = "activebreach_harness"
+path = "tests/activebreach_harness.rs"
+harness = false
+
+[features]
+default = ["secure"]
+secure = []
+stealth = []
+long_sleep = []
+ntdll_backend = []
+
+[profile.dev]
+opt-level = 1
+debug = true
+debug-assertions = true
+overflow-checks = true
+lto = false
+panic = "unwind"
+incremental = true
+codegen-units = 16
+
+[profile.release]
+opt-level = 3
+debug = false
+debug-assertions = false
+overflow-checks = false
+lto = "fat"
+panic = "abort"
+incremental = false
+codegen-units = 1
+strip = "symbols"

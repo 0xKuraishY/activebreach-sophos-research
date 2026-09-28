@@ -1,0 +1,12 @@
+ActiveBreach Engine vs Sophos Intercept X - research repository
+
+This repository contains modifications to ActiveBreach-Engine
+(https://github.com/8damon/ActiveBreach-Engine), copyright 2026 RYFTENIUS,
+distributed under the Apache License 2.0 with Commons Clause
+(see LICENSE: commercial use is not permitted).
+
+Modifications, PoC, guides and evaluation documents:
+copyright 2026 0xKuraishY, licensed under the same terms.
+
+The binaries are debug builds; absolute build paths in embedded debug
+strings have been sanitized for publication.

